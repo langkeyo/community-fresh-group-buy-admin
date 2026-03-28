@@ -7,8 +7,22 @@ const router = useRouter()
 const isLoginPage = computed(() => route.path === '/login')
 
 const handleLogout = () => {
-  localStorage.removeItem('token')
-  router.replace('/login')
+  ElMessageBox.confirm('确定要退出登录吗？', '温馨提示', {
+    type: 'warning',
+    confirmButtonText: '确定退出',
+    cancelButtonText: '取消',
+    lockScroll: false
+  })
+    .then(() => {
+      console.log('执行退出登录')
+
+      localStorage.removeItem('token')
+      router.replace('/login')
+      ElMessage.success('退出登录成功')
+    })
+    .catch(() => {
+      ElMessage.info('已取消退出')
+    })
 }
 </script>
 
@@ -22,7 +36,10 @@ const handleLogout = () => {
       class="h-14 bg-white dark:bg-black border-b flex items-center justify-between px-4"
     >
       <span>社区团购后台</span>
-      <button class="px-3 py-1 text-sm border rounded" @click="handleLogout">
+      <button
+        class="px-3 py-1 text-sm border border-red-200 rounded cursor-pointer hover:border-red-100 hover:bg-red-400"
+        @click="handleLogout"
+      >
         退出登录
       </button>
     </header>

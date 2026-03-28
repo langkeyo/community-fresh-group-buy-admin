@@ -4,7 +4,7 @@ import {
   updateOrderStatusApi,
   type OrderItem
 } from '@/api/order'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 const MIN_LOADING_MS = 500
@@ -15,14 +15,47 @@ const list = ref<OrderItem[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
 const queryUserId = ref<number>(1)
+const keyword = ref('')
+const page = ref(1)
+const pageSize = ref(10)
+const updatingId = ref<string>('')
+
+const pagedList = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return displayList.value.slice(start, end)
+})
 
 const displayList = computed(() => {
-  if (statusFilter.value === null) return list.value
-  return list.value.filter((item) => item.status === statusFilter.value)
+  let data = list.value
+
+  if (statusFilter.value !== null) {
+    data = data.filter((item) => item.status === statusFilter.value)
+  }
+
+  const kw = keyword.value.trim()
+  if (kw) {
+    data = data.filter((item) => item.no.includes(kw) || item.name.includes(kw))
+  }
+
+  return data
+})
+
+const handlePageChange = (p: number) => {
+  page.value = p
+}
+
+const handleSizeChange = (size: number) => {
+  pageSize.value = size
+  page.value = 1
+}
+
+watch([statusFilter, keyword], () => {
+  page.value = 1
 })
 
 const handleSearch = async () => {
-  statusFilter.value = null
+  page.value = 1
   await load()
 }
 
@@ -49,26 +82,61 @@ const getNextStatusText = (status: number) => {
 
 const handleUpdateStatus = async (row: OrderItem) => {
   const next = getNextStatus(row.status)
-  if (!next) return
+  if (!next || updatingId.value) return
+
+  const nextText = getNextStatusText(row.status)
 
   try {
+    await ElMessageBox.confirm(
+      `确认将订单 ${row.no} 状态更新为 【${nextText.replace('标记', '')}】吗？`,
+      '状态确认',
+      {
+        type: 'warning',
+        confirmButtonText: '确认',
+        cancelButtonText: '取消',
+        showCancelButton: true,
+        lockScroll: false
+      }
+    )
+
+    updatingId.value = row.id
     const res = await updateOrderStatusApi(row.id, next)
     if (res.code !== 200) throw new Error(res.message || '更新失败')
+
+    ElMessage.success('状态更新成功')
     await load()
   } catch (error: any) {
+    // 用户主动取消不提示错误
+    if (error === 'cancel' || error === 'close') return
     ElMessage.error(error?.message || '更新失败')
+  } finally {
+    updatingId.value = ''
   }
 }
 
-const load = async () => {
+const load = async (opts?: { keepPage?: boolean }) => {
   loading.value = true
   errorMsg.value = ''
   const start = performance.now()
+
+  const prevPage = page.value
 
   try {
     const res = await getOrderListApi(queryUserId.value)
     if (res.code !== 200) throw new Error(res.message || '加载失败')
     list.value = res.data || []
+
+    // 若不保留分页，默认回第一页
+    if (!opts?.keepPage) {
+      page.value = 1
+    } else {
+      // 保留分页时，防止删到空页
+      const maxPage = Math.max(
+        1,
+        Math.ceil(displayList.value.length / pageSize.value)
+      )
+      if (prevPage > maxPage) page.value = maxPage
+    }
   } catch (error: any) {
     errorMsg.value = error?.message || '加载失败'
   } finally {
@@ -110,6 +178,12 @@ onMounted(() => {
     </div>
     <div class="mb-3 flex items-center gap-2">
       <el-input-number v-model="queryUserId" :min="1" />
+      <el-input
+        placeholder="搜索订单号/商品名"
+        v-model="keyword"
+        clearable
+        style="width: 220px"
+      />
       <el-button
         type="primary"
         :loading="loading"
@@ -128,7 +202,7 @@ onMounted(() => {
       class="mb-3"
     />
 
-    <el-table v-loading="loading" :data="displayList" border class="w-full">
+    <el-table v-loading="loading" :data="pagedList" border class="w-full">
       <el-table-column prop="no" label="订单号" min-width="180" />
       <el-table-column prop="name" label="商品" min-width="160" />
       <el-table-column prop="status" label="状态" min-width="100">
@@ -148,6 +222,8 @@ onMounted(() => {
             v-if="getNextStatus(row.status)"
             type="primary"
             size="small"
+            :loading="updatingId === row.id"
+            :disabled="Boolean(updatingId) && updatingId !== row.id"
             @click="handleUpdateStatus(row)"
           >
             {{ getNextStatusText(row.status) }}
@@ -156,5 +232,17 @@ onMounted(() => {
         </template>
       </el-table-column>
     </el-table>
+
+    <div class="mt-4 flex justify-end">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="displayList.length"
+        :page-sizes="[5, 10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+      ></el-pagination>
+    </div>
   </div>
 </template>
