@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import {
+  getOrderDetailApi,
   getOrderListApi,
   updateOrderStatusApi,
   type OrderItem
@@ -19,6 +20,9 @@ const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
 const updatingId = ref<string>('')
+const detailVisible = ref(false)
+const detailOrder = ref<OrderItem | null>(null)
+const detailLoading = ref(false)
 
 const pagedList = computed(() => {
   const start = (page.value - 1) * pageSize.value
@@ -57,6 +61,65 @@ watch([statusFilter, keyword], () => {
 const handleSearch = async () => {
   page.value = 1
   await load()
+}
+
+const openDetail = async (row: OrderItem) => {
+  detailLoading.value = true
+
+  try {
+    const res = await getOrderDetailApi(row.id)
+    if (res.code !== 200 || !res.data)
+      throw new Error(res.message || '加载详情失败')
+    detailOrder.value = res.data
+    detailVisible.value = true
+  } catch (error: any) {
+    ElMessage.error(error?.message || '加载详情失败')
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const exportCsv = () => {
+  const headers = [
+    '订单号',
+    '商品',
+    '状态',
+    '金额',
+    '下单时间',
+    '提货点',
+    '提货地址'
+  ]
+  const rows = displayList.value.map((item) => [
+    item.no,
+    item.name,
+    getStatusMeta(item.status).label,
+    item.price,
+    item.createTime,
+    item.pickPointName,
+    item.pickPointAddress
+  ])
+
+  const escapeCell = (v: unknown) => {
+    const s = String(v ?? '')
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return `"${s.replace(/"/g, '""')}"`
+    }
+    return s
+  }
+
+  const content = [headers, ...rows]
+    .map((row) => row.map(escapeCell).join(','))
+    .join('\n')
+
+  const blob = new Blob(['\uFEFF' + content], {
+    type: 'text/csv;charset=utf-8;'
+  })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `orders-${Date.now()}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 const getStatusMeta = (status: number) => {
@@ -191,6 +254,7 @@ onMounted(() => {
         @click="handleSearch"
         >查询</el-button
       >
+      <el-button @click="exportCsv">导出CVS</el-button>
     </div>
 
     <el-alert
@@ -228,7 +292,8 @@ onMounted(() => {
           >
             {{ getNextStatusText(row.status) }}
           </el-button>
-          <span v-else class="text-gray-400">--</span>
+          <el-button size="small" @click="openDetail(row)">详情</el-button>
+          <!-- <span v-else class="text-gray-400">--</span> -->
         </template>
       </el-table-column>
     </el-table>
@@ -245,4 +310,27 @@ onMounted(() => {
       ></el-pagination>
     </div>
   </div>
+
+  <el-drawer
+    title="Title"
+    direction="rtl"
+    show-close
+    v-model="detailVisible"
+    size="420px"
+  >
+    <div
+      v-if="detailOrder"
+      v-loading="detailLoading"
+      class="space-y-3 text-sm text-black"
+    >
+      <div>订单号：{{ detailOrder.no }}</div>
+      <div>商品：{{ detailOrder.name }}</div>
+      <div>数量：{{ detailOrder.qty }}</div>
+      <div>金额：￥{{ detailOrder.price }}</div>
+      <div>状态：{{ getStatusMeta(detailOrder.status).label }}</div>
+      <div>下单时间：{{ detailOrder.createTime }}</div>
+      <div>提货点：{{ detailOrder.pickPointName }}</div>
+      <div>地址：{{ detailOrder.pickPointAddress }}</div>
+    </div>
+  </el-drawer>
 </template>

@@ -25,6 +25,11 @@ export const getOrderListApi = async (userId: number) => {
   return data
 }
 
+export const getOrderDetailApi = async (orderId: string) => {
+  const { data } = await http.get<Result<OrderItem>>(`/api/order/${orderId}`)
+  return data
+}
+
 export const updateOrderStatusApi = async (orderId: string, status: number) => {
   const { data } = await http.put<Result<string>>(
     `/api/order/updateStatus/${orderId}?status=${status}`
