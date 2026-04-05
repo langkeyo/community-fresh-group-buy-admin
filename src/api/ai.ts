@@ -6,6 +6,13 @@ interface Result<T> {
   data: T
 }
 
+interface PageResp<T> {
+  records: T[]
+  total: number
+  size: number
+  current: number
+}
+
 export interface AiReviewItem {
   id: number
   queryText: string
@@ -14,6 +21,7 @@ export interface AiReviewItem {
   status: string
   reviewer?: string
   reviewRemark?: string
+  hitCount?: number
   createdAt: string
   reviewedAt: string
 }
@@ -24,6 +32,18 @@ export const getAiReviewListApi = async (status = 'PENDING') => {
     {
       params: { status }
     }
+  )
+  return data
+}
+
+export const getAiReviewPageApi = async (
+  status = 'PENDING',
+  page = 1,
+  size = 10
+) => {
+  const { data } = await http.get<Result<PageResp<AiReviewItem>>>(
+    '/api/ai/review/list/page',
+    { params: { status, page, size } }
   )
   return data
 }
@@ -48,6 +68,15 @@ export const rejectAiReviewApi = async (
     `/api/ai/review/reject/${id}`,
     null,
     { params: { reviewer, remark } }
+  )
+  return data
+}
+
+export const regenerateAiReviewApi = async (id: number, reviewer = 'admin') => {
+  const { data } = await http.post<Result<string>>(
+    `/api/ai/review/regenerate/${id}`,
+    null,
+    { params: { reviewer } }
   )
   return data
 }
