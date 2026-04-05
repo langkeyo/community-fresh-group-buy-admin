@@ -65,6 +65,13 @@ onMounted(load)
     <el-table v-loading="loading" :data="displayUsers" border class="w-full">
       <el-table-column prop="id" label="用户ID" width="100" />
       <el-table-column prop="nickname" label="昵称" min-width="140" />
+      <el-table-column prop="isLeader" label="团长" width="100">
+        <template #default="{ row }">
+          <el-tag :type="row.isLeader ? 'success' : 'info'">
+            {{ row.isLeader ? '是' : '否' }}
+          </el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="phone" label="手机号" min-width="140" />
       <el-table-column prop="createTime" label="注册时间" min-width="180" />
     </el-table>

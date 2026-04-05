@@ -18,10 +18,10 @@ interface Result<T> {
   data: T
 }
 
-export const getOrderListApi = async (userId: number) => {
-  const { data } = await http.get<Result<OrderItem[]>>(
-    `/api/order/list/${userId}`
-  )
+export const getOrderListApi = async (status?: number) => {
+  const { data } = await http.get<Result<OrderItem[]>>('/api/order/list/all', {
+    params: status !== undefined ? { status } : undefined
+  })
   return data
 }
 

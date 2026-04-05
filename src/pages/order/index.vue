@@ -15,7 +15,6 @@ const statusFilter = ref<number | null>(null)
 const list = ref<OrderItem[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
-const queryUserId = ref<number>(1)
 const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
@@ -185,9 +184,9 @@ const load = async (opts?: { keepPage?: boolean }) => {
   const prevPage = page.value
 
   try {
-    const res = await getOrderListApi(queryUserId.value)
-    if (res.code !== 200) throw new Error(res.message || '加载失败')
-    list.value = res.data || []
+  const res = await getOrderListApi(statusFilter.value ?? undefined)
+  if (res.code !== 200) throw new Error(res.message || '加载失败')
+  list.value = res.data || []
 
     // 若不保留分页，默认回第一页
     if (!opts?.keepPage) {
@@ -240,7 +239,6 @@ onMounted(() => {
       <el-button @click="statusFilter = null">清除筛选</el-button>
     </div>
     <div class="mb-3 flex items-center gap-2">
-      <el-input-number v-model="queryUserId" :min="1" />
       <el-input
         placeholder="搜索订单号/商品名"
         v-model="keyword"

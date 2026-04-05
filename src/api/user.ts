@@ -18,6 +18,7 @@ export interface AdminUserItem {
   id: number
   nickname?: string
   phone?: string
+  isLeader?: boolean
   createTime?: string
 }
 

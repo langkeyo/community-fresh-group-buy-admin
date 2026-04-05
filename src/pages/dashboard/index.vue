@@ -46,7 +46,7 @@ const load = async () => {
 
   try {
     performance.now()
-    const res = await getOrderListApi(1) // 先固定 userId=1，后续再做筛选
+  const res = await getOrderListApi()
     if (res.code !== 200) throw new Error(res.message || '加载失败')
     list.value = res.data || []
     lastUpdatedAt.value = new Date().toLocaleDateString()
