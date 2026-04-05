@@ -10,6 +10,7 @@ const router = createRouter({
       component: () => import('@/pages/dashboard/index.vue')
     },
     { path: '/order', component: () => import('@/pages/order/index.vue') },
+    { path: '/product', component: () => import('@/pages/product/index.vue') },
     { path: '/user', component: () => import('@/pages/user/index.vue') },
     {
       path: '/ai-review',

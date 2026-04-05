@@ -73,6 +73,11 @@ const handleLogout = () => {
           >订单管理</router-link
         >
         <router-link
+          to="/product"
+          class="block py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-orange-600"
+          >商品管理</router-link
+        >
+        <router-link
           to="/user"
           class="block py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-orange-600"
           >用户管理</router-link
