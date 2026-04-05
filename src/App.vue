@@ -77,6 +77,11 @@ const handleLogout = () => {
           class="block py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-orange-600"
           >用户管理</router-link
         >
+        <router-link
+          to="/ai-review"
+          class="block py-2 px-2 rounded hover:bg-gray-100 dark:hover:bg-orange-600"
+          >AI审核</router-link
+        >
       </aside>
       <main class="flex-1 p-4">
         <router-view />
