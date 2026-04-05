@@ -22,6 +22,9 @@ const pickedCount = computed(
   () => list.value.filter((i) => i.status === 3).length
 )
 const latestOrders = computed(() => list.value.slice(0, 5))
+const recentPicked = computed(() =>
+  list.value.filter((i) => i.status === 3).slice(0, 5)
+)
 
 const getStatusMeta = (status: number) => {
   if (status === 1) return { label: '待成团', type: 'warning' as const }
@@ -46,10 +49,10 @@ const load = async () => {
 
   try {
     performance.now()
-  const res = await getOrderListApi()
+    const res = await getOrderListApi()
     if (res.code !== 200) throw new Error(res.message || '加载失败')
     list.value = res.data || []
-    lastUpdatedAt.value = new Date().toLocaleDateString()
+    lastUpdatedAt.value = new Date().toLocaleString()
   } catch (error: any) {
     errorMsg.value = error?.message || '加载失败'
   } finally {
@@ -111,22 +114,34 @@ onMounted(load)
       >
     </div>
 
-    <el-card>
-      <template #header>最近订单（前5条）</template>
-      <el-table v-loading="loading" :data="latestOrders" border>
-        <el-table-column prop="no" label="订单号" min-width="180" />
-        <el-table-column prop="name" label="商品" min-width="140" />
-        <el-table-column prop="status" label="状态" min-width="100">
-          <template #default="{ row }">
-            <el-tag :type="getStatusMeta(row.status).type">
-              {{ getStatusMeta(row.status).label }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="price" label="金额" min-width="90">
-          <template #default="{ row }"> ￥{{ row.price }} </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+    <div class="grid grid-cols-2 gap-4">
+      <el-card>
+        <template #header>最近订单（前5条）</template>
+        <el-table v-loading="loading" :data="latestOrders" border>
+          <el-table-column prop="no" label="订单号" min-width="180" />
+          <el-table-column prop="name" label="商品" min-width="140" />
+          <el-table-column prop="status" label="状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="getStatusMeta(row.status).type">
+                {{ getStatusMeta(row.status).label }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="price" label="金额" min-width="90">
+            <template #default="{ row }"> ￥{{ row.price }} </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
+
+      <el-card>
+        <template #header>最近核销（已取货）</template>
+        <el-table v-loading="loading" :data="recentPicked" border>
+          <el-table-column prop="no" label="订单号" min-width="180" />
+          <el-table-column prop="name" label="商品" min-width="140" />
+          <el-table-column prop="pickPointName" label="自提点" min-width="140" />
+          <el-table-column prop="createTime" label="下单时间" min-width="160" />
+        </el-table>
+      </el-card>
+    </div>
   </div>
 </template>
