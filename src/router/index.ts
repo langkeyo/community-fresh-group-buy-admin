@@ -15,6 +15,10 @@ const router = createRouter({
     {
       path: '/ai-review',
       component: () => import('@/pages/ai-review/index.vue')
+    },
+    {
+      path: '/system-config',
+      component: () => import('@/pages/system-config/index.vue')
     }
   ]
 })

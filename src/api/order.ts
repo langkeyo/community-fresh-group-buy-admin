@@ -18,9 +18,16 @@ interface Result<T> {
   data: T
 }
 
-export const getOrderListApi = async (status?: number) => {
+export interface GetOrderListParams {
+  status?: number
+  pickPointId?: number
+  startTime?: string
+  endTime?: string
+}
+
+export const getOrderListApi = async (params?: GetOrderListParams) => {
   const { data } = await http.get<Result<OrderItem[]>>('/api/order/list/all', {
-    params: status !== undefined ? { status } : undefined
+    params
   })
   return data
 }

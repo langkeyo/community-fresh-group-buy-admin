@@ -5,6 +5,7 @@ import {
   updateOrderStatusApi,
   type OrderItem
 } from '@/api/order'
+import { getPickPointListApi, type PickPointItem } from '@/api/pick-point'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -12,6 +13,9 @@ const MIN_LOADING_MS = 500
 
 const route = useRoute()
 const statusFilter = ref<number | null>(null)
+const pickPointFilter = ref<number | null>(null)
+const timeRange = ref<[string, string] | []>([])
+const pickPointOptions = ref<PickPointItem[]>([])
 const list = ref<OrderItem[]>([])
 const loading = ref(false)
 const errorMsg = ref('')
@@ -53,13 +57,19 @@ const handleSizeChange = (size: number) => {
   page.value = 1
 }
 
-watch([statusFilter, keyword], () => {
+watch([statusFilter, keyword, pickPointFilter, timeRange], () => {
   page.value = 1
 })
 
 const handleSearch = async () => {
   page.value = 1
   await load()
+}
+
+const handleClearFilters = () => {
+  statusFilter.value = null
+  pickPointFilter.value = null
+  timeRange.value = []
 }
 
 const openDetail = async (row: OrderItem) => {
@@ -176,6 +186,16 @@ const handleUpdateStatus = async (row: OrderItem) => {
   }
 }
 
+const loadPickPoints = async () => {
+  try {
+    const res = await getPickPointListApi()
+    if (res.code !== 200) throw new Error(res.message || '加载自提点失败')
+    pickPointOptions.value = res.data || []
+  } catch (error: any) {
+    ElMessage.warning(error?.message || '加载自提点失败')
+  }
+}
+
 const load = async (opts?: { keepPage?: boolean }) => {
   loading.value = true
   errorMsg.value = ''
@@ -184,9 +204,14 @@ const load = async (opts?: { keepPage?: boolean }) => {
   const prevPage = page.value
 
   try {
-  const res = await getOrderListApi(statusFilter.value ?? undefined)
-  if (res.code !== 200) throw new Error(res.message || '加载失败')
-  list.value = res.data || []
+    const res = await getOrderListApi({
+      status: statusFilter.value ?? undefined,
+      pickPointId: pickPointFilter.value ?? undefined,
+      startTime: timeRange.value[0] || undefined,
+      endTime: timeRange.value[1] || undefined
+    })
+    if (res.code !== 200) throw new Error(res.message || '加载失败')
+    list.value = res.data || []
 
     // 若不保留分页，默认回第一页
     if (!opts?.keepPage) {
@@ -214,6 +239,7 @@ const load = async (opts?: { keepPage?: boolean }) => {
 onMounted(() => {
   const q = Number(route.query.status)
   if ([1, 2, 3, -1].includes(q)) statusFilter.value = q
+  loadPickPoints()
   load()
 })
 </script>
@@ -230,13 +256,36 @@ onMounted(() => {
         v-model="statusFilter"
         placeholder="按状态筛选"
         style="width: 180px"
+        clearable
       >
         <el-option label="待成团" :value="1" />
         <el-option label="已成团" :value="2" />
         <el-option label="已取货" :value="3" />
         <el-option label="已取消" :value="-1" />
       </el-select>
-      <el-button @click="statusFilter = null">清除筛选</el-button>
+      <el-select
+        v-model="pickPointFilter"
+        placeholder="按自提点筛选"
+        style="width: 220px"
+        clearable
+      >
+        <el-option
+          v-for="item in pickPointOptions"
+          :key="item.id"
+          :label="item.name"
+          :value="item.id"
+        />
+      </el-select>
+      <el-date-picker
+        v-model="timeRange"
+        type="datetimerange"
+        range-separator="至"
+        start-placeholder="开始时间"
+        end-placeholder="结束时间"
+        format="YYYY-MM-DD HH:mm:ss"
+        value-format="YYYY-MM-DD HH:mm:ss"
+      />
+      <el-button @click="handleClearFilters">清空筛选</el-button>
     </div>
     <div class="mb-3 flex items-center gap-2">
       <el-input
