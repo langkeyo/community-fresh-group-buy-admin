@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { type AdminUserItem, getUserListApi } from '@/api/user'
+import { type AdminUserItem, getUserListApi, updateLeaderApi } from '@/api/user'
+import { ElMessage } from 'element-plus'
 import { computed, onMounted, ref } from 'vue'
 
 const loading = ref(false)
 const errorMsg = ref('')
 const users = ref<AdminUserItem[]>([])
 const keyword = ref('')
+const updatingUserId = ref<number | null>(null)
 
 const displayUsers = computed(() => {
   const kw = keyword.value.trim()
@@ -34,6 +36,23 @@ const load = async () => {
 }
 
 onMounted(load)
+
+const toggleLeader = async (row: AdminUserItem, value: boolean) => {
+  if (!row.id || updatingUserId.value) return
+  const prev = Boolean(row.isLeader)
+  row.isLeader = value
+  updatingUserId.value = row.id
+  try {
+    const res = await updateLeaderApi(row.id, value)
+    if (res.code !== 200) throw new Error(res.message || '更新失败')
+    ElMessage.success(value ? '已设为团长' : '已取消团长')
+  } catch (error: any) {
+    row.isLeader = prev
+    ElMessage.error(error?.message || '更新失败')
+  } finally {
+    updatingUserId.value = null
+  }
+}
 </script>
 
 <template>
@@ -65,11 +84,18 @@ onMounted(load)
     <el-table v-loading="loading" :data="displayUsers" border class="w-full">
       <el-table-column prop="id" label="用户ID" width="100" />
       <el-table-column prop="nickname" label="昵称" min-width="140" />
-      <el-table-column prop="isLeader" label="团长" width="100">
+      <el-table-column prop="isLeader" label="团长" width="180">
         <template #default="{ row }">
-          <el-tag :type="row.isLeader ? 'success' : 'info'">
-            {{ row.isLeader ? '是' : '否' }}
-          </el-tag>
+          <div class="flex items-center gap-2">
+            <el-tag :type="row.isLeader ? 'success' : 'info'">
+              {{ row.isLeader ? '是' : '否' }}
+            </el-tag>
+            <el-switch
+              :model-value="Boolean(row.isLeader)"
+              :loading="updatingUserId === row.id"
+              @change="(val:boolean) => toggleLeader(row, val)"
+            />
+          </div>
         </template>
       </el-table-column>
       <el-table-column prop="phone" label="手机号" min-width="140" />

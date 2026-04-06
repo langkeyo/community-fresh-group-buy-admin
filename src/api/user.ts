@@ -48,3 +48,10 @@ export const getUserListApi = async () => {
   const { data } = await http.get<Result<AdminUserItem[]>>('/api/user/list')
   return data
 }
+
+export const updateLeaderApi = async (id: number, isLeader: boolean) => {
+  const { data } = await http.put<Result<string>>(`/api/user/leader/${id}`, null, {
+    params: { isLeader }
+  })
+  return data
+}
