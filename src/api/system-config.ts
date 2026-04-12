@@ -6,6 +6,18 @@ export interface SystemConfig {
   serviceWechat: string
   serviceHours: string
   serviceTerms: string
+  recommendMenus: RecommendMenuItem[]
+}
+
+export interface RecommendMenuItem {
+  name: string
+  value: string
+  icon: string
+  iconColor: string
+  bg: string
+  color: string
+  enabled: boolean
+  sort: number
 }
 
 interface Result<T> {
